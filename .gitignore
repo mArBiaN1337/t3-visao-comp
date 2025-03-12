@@ -1,6 +1,7 @@
 important.txt
 main/articles
 main/aux-routines
+main/log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
