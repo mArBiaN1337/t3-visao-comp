@@ -18,7 +18,6 @@ logging.basicConfig(
 log.info('Starting the program')
 print("Program started - Press Q to Close the Windows")
 
-
 # Read the intrinsic and extrinsic parameters of each camera
 '''
 n - Camera number
@@ -66,7 +65,7 @@ while True:
             else:
                center_recognition[cam_number] = False
 
-    num_recog = 0  
+    num_recog : int = 0  
     for cam_number, recognized in center_recognition.items():
         if recognized == True:
             num_recog += 1
@@ -75,20 +74,27 @@ while True:
     m_dot_lst = []
     for cam_number, recognized in center_recognition.items():
         if recognized == True:
-            if len(marker_info[cam_number]) > 0:
-                center = get_center(marker_info[cam_number]['corners'])
-                
-                center_point = np.array([center['f']])
-                center_point = np.hstack([center_point, np.array([[1]])]).T
-                proj_m = cams_params[cam_number]['GEN_PROJ']
+            if num_recog >= 2:
+                if len(marker_info[cam_number]) > 0:
+                    center = get_center(marker_info[cam_number]['corners'])
+                    
+                    center_point = np.array([center['f']])
+                    center_point = np.hstack([center_point, np.array([[1]])]).T
+                    proj_m = cams_params[cam_number]['GEN_PROJ']
 
-                proj_m_lst.append(proj_m)
-                m_dot_lst.append(center_point)
+                    proj_m_lst.append(proj_m)
+                    m_dot_lst.append(center_point)
 
-                # fazer matriz B para resolver sistema via SVD
-                # B tem dimensão 3n X (4 + n), onde n é o número
-                # de reconhecimentos (num_recog)
+                    B = np.zeros([3*num_recog, num_recog + 4])
 
+                    for i in range(num_recog)
+
+                    # fazer matriz B para resolver sistema via SVD
+                    # B tem dimensão 3n X (4 + n), onde n é o número
+                    # de reconhecimentos (num_recog)
+
+    log.info(f'{B} {num_recog}')
+    
     # Quit by clicking 'Q'
     if cv2.waitKey(1) == ord('q') or cv2.waitKey(1) == ord('Q'): 
         break   
