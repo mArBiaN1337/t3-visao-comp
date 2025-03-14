@@ -15,14 +15,15 @@ def get_aruco_info(frame_dict : Dict[int, MatLike],
                    arucoDetector:ArucoDetector) -> Dict[int, Dict[str, MatLike | Sequence[MatLike]]]:
     
     ID_0 = np.array([0])
+
     markerInfo = {0:{},1:{},2:{},3:{}}
                     
     for cam_number, frame in frame_dict.items():
         if frame is not None:
             corners, ids, _ = arucoDetector.detectMarkers(frame)
             filtered_corners, filtered_ids = filter_corners_ids(corners, ids, criteria=ID_0)
-            log.info(f"Detected marker ID: {filtered_ids} with corners: {filtered_corners} from CAM {cam_number}")
-            frame_marker = aruco.drawDetectedMarkers(frame.copy(), corners, ids)
+            #log.info(f"Detected marker ID: {filtered_ids} with corners: {filtered_corners} from CAM {cam_number}")
+            frame_marker = aruco.drawDetectedMarkers(frame.copy(), filtered_corners, filtered_ids)
             markerInfo[cam_number] = {  'corners': filtered_corners,
                                         'ids': filtered_ids, 
                                         'frame_marker': frame_marker } 
@@ -31,20 +32,28 @@ def get_aruco_info(frame_dict : Dict[int, MatLike],
     return markerInfo
 
 
-def get_centre(corners : MatLike) -> MatLike: 
+def get_center(corners : MatLike) -> MatLike: 
     sum_x = 0
     sum_y = 0
-    for corner in corners:       
-        for points in corner[0]:
-            x, y = points
-            sum_x += x
-            sum_y += y
+
+    if len(corners) > 0:
+        for corner in corners:       
+            for points in corner[0]:
+                x, y = points
+                sum_x += x
+                sum_y += y
+            
+        centre_x = 0.25 * sum_x
+        centre_y = 0.25 * sum_y
+
+        center_float = np.array([centre_x, centre_y], dtype=np.float64)
+        center_int = np.array([centre_x, centre_y], dtype=np.integer)
+        
+        center = {'i':center_int, 'f':center_float}
+        return center
+    else:
+        return None
     
-    centre_x = 0.25 * sum_x
-    centre_y = 0.25 * sum_y
-    centre = np.array([centre_x, centre_y], dtype=int)
-    
-    return centre
 
 def filter_corners_ids(corners : MatLike, ids : MatLike, criteria : np.ndarray) -> tuple[MatLike, MatLike]:
     filtered_corners = []
@@ -77,20 +86,23 @@ def retrieve_cams_parameters() -> Dict[int, Dict[str, List | np.ndarray]]:
     for cam_number, file in enumerate(files):
         K, R, T, res, dis = camera_parameters(file)
 
-        proj_matrix = np.eye(3)
-        proj_matrix = np.hstack([proj_matrix, np.array([np.zeros(3)]).T])
+        PROJ_M = np.eye(3)
+        PROJ_M = np.hstack([PROJ_M, np.array([np.zeros(3)]).T])
 
-        tf_matrix = np.hstack([R,T])
-        tf_matrix = np.vstack([tf_matrix, np.array([[0,0,0,1]])])
+        TF_M = np.hstack([R,T])
+        TF_M = np.vstack([TF_M, np.array([[0,0,0,1]])])
 
-        tf_inv = np.linalg.inv(tf_matrix)
+        TF_INV = np.linalg.inv(TF_M)
+
+        GEN_PROJ = K @ PROJ_M @ TF_INV
 
         cams_params[cam_number] = { 'K':K,
                                     'R':R,
                                     'T':T,
-                                    'PRJ_M':proj_matrix,
-                                    'TF':tf_matrix,
-                                    'TF_INV':tf_inv,
+                                    'PRJ_M':PROJ_M,
+                                    'TF':TF_M,
+                                    'TF_INV':TF_INV,
+                                    'GEN_PROJ':GEN_PROJ,
                                     'res':res,
                                     'dis':dis }
         

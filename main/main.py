@@ -13,10 +13,10 @@ logging.basicConfig(
     filemode='w',
     filename='log.log', 
     encoding='utf-8', 
-    level=logging.DEBUG)
+    level=logging.INFO)
 
 log.info('Starting the program')
-print("Program started - Press Q to Terminate")
+print("Program started - Press Q to Close the Windows")
 
 
 # Read the intrinsic and extrinsic parameters of each camera
@@ -41,6 +41,9 @@ parameters =  aruco.DetectorParameters()
 dictionary = aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
 arucoDetector = aruco.ArucoDetector(dictionary, parameters)
 
+center_recognition = ({0:{},1:{},2:{},3:{}})
+frame_counter = 0
+
 while True:
 
     frame_dict : Dict[int, MatLike] = {}
@@ -56,15 +59,53 @@ while True:
     marker_info = get_aruco_info(frame_dict, arucoDetector)
     for cam_number, frame in frame_dict.items():
         if frame is not None:
-           centre = get_centre(marker_info[cam_number]['corners'])
-           circle = cv2.circle(frame, centre, 8, (0,255,0), cv2.FILLED)
-           cv2.imshow(f"CAM{cam_number}", frame) 
+            cv2.imshow(f"CAM{cam_number}", marker_info[cam_number]['frame_marker'])
+            
+            if len(marker_info[cam_number]['ids']) > 0:
+               center_recognition[cam_number] = True
+            else:
+               center_recognition[cam_number] = False
 
-    # Quit by clicking 'q'
-    if cv2.waitKey(1) == ord('q'):
-        break    
+    num_recog = 0  
+    for cam_number, recognized in center_recognition.items():
+        if recognized == True:
+            num_recog += 1
+    
+    proj_m_lst = []
+    m_dot_lst = []
+    for cam_number, recognized in center_recognition.items():
+        if recognized == True:
+            if len(marker_info[cam_number]) > 0:
+                center = get_center(marker_info[cam_number]['corners'])
+                
+                center_point = np.array([center['f']])
+                center_point = np.hstack([center_point, np.array([[1]])]).T
+                proj_m = cams_params[cam_number]['GEN_PROJ']
+
+                proj_m_lst.append(proj_m)
+                m_dot_lst.append(center_point)
+
+                # fazer matriz B para resolver sistema via SVD
+                # B tem dimensão 3n X (4 + n), onde n é o número
+                # de reconhecimentos (num_recog)
+
+    # Quit by clicking 'Q'
+    if cv2.waitKey(1) == ord('q') or cv2.waitKey(1) == ord('Q'): 
+        break   
 
 
 cv2.destroyAllWindows()
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter([1,0,0],[0,1,0],[0,0,1])
+ax.set_title('Position Estimate 3D - Calibrated Cameras')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.show()
+
 log.info('Program finished')
+
+
 
