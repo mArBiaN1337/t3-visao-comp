@@ -5,24 +5,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 
-
-'''
-TO-DO:
-- [ ] MODULARIZAR O CODIGO COM FUNÇÕES PARA CADA ETAPA DO PROCESSO 
-- [ ] GARANTIR QUE APENAS OS IDS=0 SEJAM DETECTADOS
-- [ ] GARANTIR QUE NUMERO DE CORNERS = NUMERO DE IDS NO METODO drawDetectedMarkers
- 
-'''
+np.set_printoptions(precision=2, suppress=True)
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     filemode='w',
-    filename='log.txt', 
+    filename='log.log', 
     encoding='utf-8', 
     level=logging.DEBUG)
 
 log.info('Starting the program')
+print("Program started - Press Q to Terminate")
+
 
 # Read the intrinsic and extrinsic parameters of each camera
 '''
@@ -36,32 +31,34 @@ disn - Distorcao Radial
 
 #Get cam parameters from json files
 cams_params = retrieve_cams_parameters()
+log.info(f'{cams_params}')
 
 #Load Aruco Videos Frame by Frame 
 cams_videos = capture_videos()
 
 #Setup Aruco Detector
 parameters =  aruco.DetectorParameters()
-dictionary = aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+dictionary = aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
 arucoDetector = aruco.ArucoDetector(dictionary, parameters)
 
 while True:
-    _, img0 = cams_videos[0].read()
-    _, img1 = cams_videos[1].read()
-    _, img2 = cams_videos[2].read()
-    _, img3 = cams_videos[3].read()
 
-    img_list = [img0, img1, img2, img3]
-    imgs_read = all(img is not None for img in img_list)
-    log.debug(imgs_read)
-    if imgs_read == True:
+    frame_dict : Dict[int, MatLike] = {}
 
-        aruco_info_dict = get_aruco_info(img_list, arucoDetector)
+    for cam_number, cam_cap in cams_videos.items():
+        ret, frame = cam_cap.read()
+        if ret:
+            frame_dict[cam_number] = frame
+        else:
+            log.debug('Error reading from CAM {} - frame: {} '.format(cam_number, frame))
+            continue
 
-        cv2.imshow('cam0', aruco_info_dict[0]['frame_markers'])
-        cv2.imshow('cam1', aruco_info_dict[1]['frame_markers'])
-        cv2.imshow('cam2', aruco_info_dict[2]['frame_markers'])
-        cv2.imshow('cam3', aruco_info_dict[3]['frame_markers'])
+    marker_info = get_aruco_info(frame_dict, arucoDetector)
+    for cam_number, frame in frame_dict.items():
+        if frame is not None:
+           centre = get_centre(marker_info[cam_number]['corners'])
+           circle = cv2.circle(frame, centre, 8, (0,255,0), cv2.FILLED)
+           cv2.imshow(f"CAM{cam_number}", frame) 
 
     # Quit by clicking 'q'
     if cv2.waitKey(1) == ord('q'):
