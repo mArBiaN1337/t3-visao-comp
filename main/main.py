@@ -49,7 +49,6 @@ DISPLAY = True
 
 #Get cam parameters from json files
 cams_params = retrieve_cams_parameters()
-log.info(f'{cams_params}')
 
 #Load Aruco Videos Frame by Frame 
 cams_videos = capture_videos()
@@ -110,9 +109,7 @@ try:
                         proj_m_lst.append(proj_m)
                         m_dot_lst.append(center_point)
 
-
         b_matrix = np.zeros([3*num_recog, 4 + num_recog])
-
         for i in range(num_recog):
             if len(proj_m_lst) > 0 and len(m_dot_lst) > 0:
                 proj_m = proj_m_lst[i]
@@ -121,14 +118,18 @@ try:
                 b_matrix[3*i : 3*(i+1), 0:4] = proj_m
                 b_matrix[3*i : 3*(i+1), 4+i] = m_dot[:,0]
 
-                U, S, Vt = np.linalg.svd(b_matrix)
-                Vt = Vt.T
-                pos_est = Vt[0:4,-1]
-                if pos_est[-1] != 0:
-                    pos_est = pos_est / pos_est[-1]
-                    position_estimate['x'].append(pos_est[0])
-                    position_estimate['y'].append(pos_est[1])
-                    position_estimate['z'].append(pos_est[2])
+        U, S, Vt = np.linalg.svd(b_matrix)
+        Vt = Vt.T
+        pos_est = Vt[0:4,-1]
+
+        if pos_est[-1] != np.float64(0):
+            pos_est = pos_est / pos_est[-1]
+            x, y, z = pos_est[0], pos_est[1], pos_est[2]
+
+            if z > np.float64(0):
+                position_estimate['x'].append(x)
+                position_estimate['y'].append(y)
+                position_estimate['z'].append(z)
 
         if cv2.waitKey(1) == ord('q') or cv2.waitKey(1) == ord('Q'):
             break
@@ -139,26 +140,30 @@ finally:
     cv2.destroyAllWindows()
 
 
-FILTER_OUTLIERS = False
 try:
     print("Press 'Ctrl+C' to quit 3D plot")
     fig = plt.figure()
     ax = plt.axes(projection='3d')
 
-    if FILTER_OUTLIERS:
-        remove_outliers_sync(position_estimate, gaussian=False)
+    for i in range(len(position_estimate.get('x'))):
+        log.info("x:{:.2f} y:{:.2f} z:{:.2f}".format(
+            position_estimate.get('x')[i],
+            position_estimate.get('y')[i],
+            position_estimate.get('z')[i],
+        ))
 
     ax.scatter(position_estimate['x'],position_estimate['y'],position_estimate['z'],c='g')
     ax.set_title('Position Estimate 3D - Calibrated Cameras')
     ax.axes.set_xlim([-2,2])
     ax.axes.set_ylim([-1,1])
     ax.axes.set_zlim([0,1])
+    ax.grid(visible=True)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
 
-    log.info(f'ALTURA MEDIA DO OBJETO: {np.mean(position_estimate["z"]) * 100} cm')
+    log.info(f"ALTURA MEDIA DO OBJETO: {np.mean(position_estimate['z']) * 100 : .2f} cm")
 
 except KeyboardInterrupt: pass
 

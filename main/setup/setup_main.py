@@ -11,29 +11,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def remove_outliers_sync(position_estimate : Dict[str, List | np.ndarray], gaussian : bool = True, n_stds: int =2) -> None:
-    
-    x, y, z = np.array(position_estimate['x']), np.array(position_estimate['y']), np.array(position_estimate['z'])
-    
-    if gaussian:
-        mean_x, std_x = np.mean(x), np.std(x)
-        mean_y, std_y = np.mean(y), np.std(y)
-        mean_z, std_z = np.mean(z), np.std(z)
-
-        mask_x = (mean_x - n_stds * std_x < x) & (x < mean_x + n_stds * std_x)
-        mask_y = (mean_y - n_stds * std_y < y) & (y < mean_y + n_stds * std_y)
-        mask_z = (mean_z - n_stds * std_z < z) & (z < mean_z + n_stds * std_z)
-    else:
-        mask_x = (x > -2.0) & (x < 2.0)
-        mask_y = (y > -1.0) & (x < 1.0)
-        mask_z = (z >  0.0) & (z < 2.0)
-        
-    mask = mask_x & mask_y & mask_z
-
-    position_estimate['x'] = x[mask].tolist()
-    position_estimate['y'] = y[mask].tolist()
-    position_estimate['z'] = z[mask].tolist()
-
 def get_aruco_info(frame_dict : Dict[int, MatLike],
                    arucoDetector:ArucoDetector) -> Dict[int, Dict[str, MatLike | Sequence[MatLike]]]:
     
