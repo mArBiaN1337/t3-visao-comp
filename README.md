@@ -1,4 +1,4 @@
-# Project Overview - t3-visao-comp
+# Project Overview
 
 Welcome to the **t3-visao-comp** project! 
 
