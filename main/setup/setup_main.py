@@ -22,7 +22,6 @@ def get_aruco_info(frame_dict : Dict[int, MatLike],
         if frame is not None:
             corners, ids, _ = arucoDetector.detectMarkers(frame)
             filtered_corners, filtered_ids = filter_corners_ids(corners, ids, criteria=ID_0)
-            #log.info(f"Detected marker ID: {filtered_ids} with corners: {filtered_corners} from CAM {cam_number}")
             frame_marker = aruco.drawDetectedMarkers(frame.copy(), filtered_corners, filtered_ids)
             markerInfo[cam_number] = {  'corners': filtered_corners,
                                         'ids': filtered_ids, 
@@ -61,12 +60,12 @@ def filter_corners_ids(corners : MatLike, ids : MatLike, criteria : np.ndarray) 
     if ids is not None:
         for id in ids:
             if id == criteria:
-                idxs = np.where(id == criteria)
+                idxs = np.where((id == criteria))
                 filtered_ids.append(id)
                 filtered_corners.append(corners[idxs[0][0]])
 
-    filtered_corners = np.array(filtered_corners)
-    filtered_ids = np.array(filtered_ids)  
+    filtered_corners = np.array(filtered_corners, dtype=np.float64)
+    filtered_ids = np.array(filtered_ids, dtype=np.integer)  
 
     return filtered_corners, filtered_ids
     

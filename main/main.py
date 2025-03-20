@@ -38,7 +38,7 @@ resn - Resolucao da Camera
 disn - Distorcao Radial
 '''
 
-WINDOW_SIZE = 950, 500
+WINDOW_SIZE = 640, 480
 
 WINDOW_OFFSETS = {  0:(0,0),
                     1:(WINDOW_SIZE[0],0),
@@ -161,6 +161,7 @@ try:
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    ax.view_init(elev=15, azim=-62, roll=-7)
     plt.show()
 
     log.info(f"ALTURA MEDIA DO OBJETO: {np.mean(position_estimate['z']) * 100 : .2f} cm")
