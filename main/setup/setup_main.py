@@ -26,48 +26,42 @@ def get_aruco_info(frame_dict : Dict[int, MatLike],
             markerInfo[cam_number] = {  'corners': filtered_corners,
                                         'ids': filtered_ids, 
                                         'frame_marker': frame_marker } 
-                      
-                        
+                                             
     return markerInfo
 
 
 def get_center(corners : MatLike) -> MatLike: 
     sum_x = 0
     sum_y = 0
-
+    
     if len(corners) > 0:
-        for corner in corners:       
-            for points in corner[0]:
-                x, y = points
-                sum_x += x
-                sum_y += y
-            
+        corners = corners.reshape(-1, 2)
+        sum_x = np.sum(corners[:, 0])
+        sum_y = np.sum(corners[:, 1])
+
         centre_x = 0.25 * sum_x
         centre_y = 0.25 * sum_y
 
-        center_float = np.array([centre_x, centre_y], dtype=np.float64)
-        center_int = np.array([centre_x, centre_y], dtype=np.integer)
+        center_float = np.array([centre_x, centre_y], dtype=np.float16)
+        center_int = np.array([centre_x, centre_y], dtype=np.int64)
         
         center = {'i':center_int, 'f':center_float}
         return center
     else:
-        return None
-    
+        center_float = np.array([0.0, 0.0], dtype=np.float16)
+        center_int = np.array([0, 0], dtype=np.int64)
 
+        center = {'i':center_int, 'f':center_float}
+        return center
+  
 def filter_corners_ids(corners : MatLike, ids : MatLike, criteria : np.ndarray) -> tuple[MatLike, MatLike]:
-    filtered_corners = []
-    filtered_ids = []
-    if ids is not None:
-        for id in ids:
-            if id == criteria:
-                idxs = np.where((id == criteria))
-                filtered_ids.append(id)
-                filtered_corners.append(corners[idxs[0][0]])
+    if ids is None:
+        return np.array([]), np.array([])
 
-    filtered_corners = np.array(filtered_corners, dtype=np.float64)
-    filtered_ids = np.array(filtered_ids, dtype=np.integer)  
+    filtered_corners = [corner for corner, id in zip(corners, ids) if id in criteria]
+    filtered_ids = [id for id in ids if id in criteria]
 
-    return filtered_corners, filtered_ids
+    return np.array(filtered_corners, dtype=np.float64), np.array(filtered_ids, dtype=np.integer)
     
 
 def retrieve_cams_parameters() -> Dict[int, Dict[str, List | np.ndarray]]:
